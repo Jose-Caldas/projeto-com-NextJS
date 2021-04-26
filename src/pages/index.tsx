@@ -8,7 +8,6 @@ export default function Home() {
       <Head>
         <title>jrnews</title>
       </Head>
-      <h1>Hello, World!</h1>
     </>
   );
 }
