@@ -1,11 +1,15 @@
 import { GetStaticProps } from "next";
+import { useSession } from "next-auth/client";
+import { useRouter } from "next/dist/client/router";
 import Head from "next/head";
+import Link from "next/link";
 import { RichText } from "prismic-dom";
+import { useEffect } from "react";
 import { getPrismicClient } from "../../../services/prismic";
 import styles from "../post.module.scss";
 
 interface PostPreviewProps {
-  post: {
+  post?: {
     slug: string;
     title: string;
     content: string;
@@ -14,6 +18,19 @@ interface PostPreviewProps {
 }
 
 export default function PostPreview({ post }: PostPreviewProps) {
+  const [session] = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (session?.activeSubscription) {
+      router.push(`/posts/${post.slug}`);
+    }
+  }, [session]);
+
+  if (!post) {
+    return <div>Post Não encontrado</div>;
+  }
+
   return (
     <>
       <Head>
@@ -24,9 +41,15 @@ export default function PostPreview({ post }: PostPreviewProps) {
           <h1>{post.title}</h1>
           <time>{post.updatedAt}</time>
           <div
-            className={styles.postContent}
+            className={`${styles.postContent} ${styles.previewContent}`}
             dangerouslySetInnerHTML={{ __html: post.content }}
           ></div>
+          <div className={styles.continueReadding}>
+            Wanna continue reading?
+            <Link href="/">
+              <a href="">Subscribe now 🤗</a>
+            </Link>
+          </div>
         </article>
       </main>
     </>
@@ -44,6 +67,13 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
 
   const prismic = getPrismicClient();
   const response = await prismic.getByUID("post", String(slug), {});
+
+  if (!response?.data) {
+    return {
+      props: {},
+    };
+  }
+
   const post = {
     slug,
     title: RichText.asText(response.data.title),
